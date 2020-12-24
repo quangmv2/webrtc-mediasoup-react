@@ -16,12 +16,12 @@ const _EVENTS = {
 
 class RoomClient {
 
-    constructor(localMediaEl, remoteVideoEl, remoteAudioEl, mediasoupClient, socket, room_id, name, successCallback) {
+    constructor(localMediaEl, remoteVideoEl, remoteAudioEl, mediasoupClientDevice, socket, room_id, name, successCallback) {
         this.name = name
         this.localMediaEl = localMediaEl
         this.remoteVideoEl = remoteVideoEl
         this.remoteAudioEl = remoteAudioEl
-        this.mediasoupClient = mediasoupClient
+        this.mediasoupClientDevice = mediasoupClientDevice
 
         this.socket = socket
         this.producerTransport = null
@@ -36,6 +36,8 @@ class RoomClient {
          * map that contains a mediatype as key and producer_id as value
          */
         this.producerLabel = new Map()
+
+        this.onStream = () => {}
 
         this._isOpen = false
         this.eventListeners = new Map()
@@ -53,11 +55,24 @@ class RoomClient {
 
     }
 
+    request(type, data = {}) {
+        return new Promise((resolve, reject) => {
+            // console.log(this.socket);
+          this.socket.emit(type, data, (data) => {
+            if (data.error) {
+              reject(data.error)
+            } else {
+              resolve(data)
+            }
+          })
+        })
+      }
+
     ////////// INIT /////////
 
     async createRoom(room_id) {
         console.log(this.socket);
-        await this.socket.request('createRoom', {
+        await this.request('createRoom', {
             room_id
         }).catch(err => {
             console.log(err)
@@ -66,14 +81,15 @@ class RoomClient {
 
     async join(name, room_id) {
 
-        socket.request('join', {
+        this.request('join', {
             name,
             room_id
         }).then(async function (e) {
             console.log(e)
-            const data = await this.socket.request('getRouterRtpCapabilities');
+            const data = await this.request('getRouterRtpCapabilities');
             let device = await this.loadDevice(data)
             this.device = device
+            console.log(device);
             await this.initTransports(device)
             this.socket.emit('getProducers')
         }.bind(this)).catch(e => {
@@ -84,7 +100,7 @@ class RoomClient {
     async loadDevice(routerRtpCapabilities) {
         let device
         try {
-            device = new this.mediasoupClient.Device();
+            device = new this.mediasoupClientDevice();
         } catch (error) {
             if (error.name === 'UnsupportedError') {
                 console.error('browser not supported');
@@ -102,7 +118,7 @@ class RoomClient {
 
         // init producerTransport
         {
-            const data = await this.socket.request('createWebRtcTransport', {
+            const data = await this.request('createWebRtcTransport', {
                 forceTcp: false,
                 rtpCapabilities: device.rtpCapabilities,
             })
@@ -116,7 +132,7 @@ class RoomClient {
             this.producerTransport.on('connect', async function ({
                 dtlsParameters
             }, callback, errback) {
-                this.socket.request('connectTransport', {
+                this.request('connectTransport', {
                         dtlsParameters,
                         transport_id: data.id
                     })
@@ -131,7 +147,7 @@ class RoomClient {
                 try {
                     const {
                         producer_id
-                    } = await this.socket.request('produce', {
+                    } = await this.request('produce', {
                         producerTransportId: this.producerTransport.id,
                         kind,
                         rtpParameters,
@@ -166,7 +182,7 @@ class RoomClient {
 
         // init consumerTransport
         {
-            const data = await this.socket.request('createWebRtcTransport', {
+            const data = await this.request('createWebRtcTransport', {
                 forceTcp: false,
             });
             if (data.error) {
@@ -179,7 +195,7 @@ class RoomClient {
             this.consumerTransport.on('connect', function ({
                 dtlsParameters
             }, callback, errback) {
-                this.socket.request('connectTransport', {
+                this.request('connectTransport', {
                         transport_id: this.consumerTransport.id,
                         dtlsParameters
                     })
@@ -247,6 +263,7 @@ class RoomClient {
         let mediaConstraints = {}
         let audio = false
         let screen = false
+        console.log(type, deviceId);
         switch (type) {
             case mediaType.audio:
                 mediaConstraints = {
@@ -269,10 +286,10 @@ class RoomClient {
                             min: 400,
                             ideal: 1080
                         },
-                        deviceId: deviceId
-                        /*aspectRatio: {
+                        deviceId: deviceId,
+                        aspectRatio: {
                             ideal: 1.7777777778
-                        }*/
+                        }
                     }
                 }
                 break
@@ -297,7 +314,6 @@ class RoomClient {
         try {
             stream = screen ? await navigator.mediaDevices.getDisplayMedia() : await navigator.mediaDevices.getUserMedia(mediaConstraints)
             console.log(navigator.mediaDevices.getSupportedConstraints())
-
 
             const track = audio ? stream.getAudioTracks()[0] : stream.getVideoTracks()[0]
             const params = {
@@ -325,14 +341,15 @@ class RoomClient {
                     videoGoogleStartBitrate: 1000
                 };
             }
-            producer = await this.producerTransport.produce(params)
+            const producer = await this.producerTransport.produce(params)
 
             console.log('producer', producer)
 
             this.producers.set(producer.id, producer)
 
             let elem
-            if (!audio) {
+            console.log(this.localMediaEl.childNodes);
+            if (!audio && this.localMediaEl.childNodes.length == 0) {
                 elem = document.createElement('video')
                 elem.srcObject = stream
                 elem.id = producer.id
@@ -437,7 +454,7 @@ class RoomClient {
         const {
             rtpCapabilities
         } = this.device
-        const data = await this.socket.request('consume', {
+        const data = await this.request('consume', {
             rtpCapabilities,
             consumerTransportId: this.consumerTransport.id, // might be 
             producerId
@@ -546,7 +563,7 @@ class RoomClient {
         }.bind(this)
 
         if (!offline) {
-            this.socket.request('exitRoom').then(e => console.log(e)).catch(e => console.warn(e)).finally(function () {
+            this.request('exitRoom').then(e => console.log(e)).catch(e => console.warn(e)).finally(function () {
                 clean()
             }.bind(this))
         } else {
@@ -560,7 +577,7 @@ class RoomClient {
     ///////  HELPERS //////////
 
     async roomInfo() {
-        let info = await socket.request('getMyRoomInfo')
+        let info = await this.request('getMyRoomInfo')
         return info
     }
 
@@ -590,4 +607,8 @@ class RoomClient {
     static get EVENTS() {
         return _EVENTS
     }
+}
+
+export {
+    RoomClient
 }
