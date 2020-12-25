@@ -6,7 +6,7 @@ import { Device } from "mediasoup-client";
 import io from  "../services/socketio";
 import { RoomClient } from "../services/RoomClient";
 
-const socket = io("https://192.168.10.105:3016", {
+const socket = io("/", {
     transports: ["websocket", "polling"]
 });
 
