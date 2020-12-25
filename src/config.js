@@ -20,7 +20,7 @@ for (var dev in ifaces) {
 
 module.exports = {
     listenIp: '0.0.0.0',
-    listenPort: 3016,
+    listenPort: 5000,
     sslCrt: '../ssl/cert.pem',
     sslKey: '../ssl/key.pem',
     

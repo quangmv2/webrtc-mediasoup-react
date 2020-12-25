@@ -8,6 +8,7 @@ const config = require('./config')
 const path = require('path')
 const Room = require('./Room')
 const Peer = require('./Peer')
+const { join } = require('path')
 
 const options = {
     key: fs.readFileSync(path.join(__dirname,config.sslKey), 'utf-8'),
@@ -18,6 +19,10 @@ const httpsServer = https.createServer(options, app)
 const io = require('socket.io')(httpsServer)
 
 app.use(express.static(path.join(__dirname, '..', 'client/build')))
+
+app.get('/', (req, res) => {
+    res.sendFile(join(__dirname, "../client/build/index.html"));
+});
 
 httpsServer.listen(config.listenPort, () => {
     console.log('listening https ' + config.listenPort)
