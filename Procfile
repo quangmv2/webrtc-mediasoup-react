@@ -1,0 +1,1 @@
+web: npm i; cd client npm i; cd npm run build; node ../src/app.js
