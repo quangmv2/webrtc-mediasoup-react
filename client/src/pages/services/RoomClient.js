@@ -435,7 +435,7 @@ class RoomClient {
                 elem.id = consumer.id
                 elem.playsinline = false
                 elem.autoplay = true
-                this.remoteAudioEl.appendChild(elem)
+                // this.remoteAudioEl.appendChild(elem)
             }
 
             consumer.on('trackended', function () {
@@ -543,10 +543,11 @@ class RoomClient {
 
     removeConsumer(consumer_id) {
         let elem = document.getElementById(consumer_id)
-        elem.srcObject.getTracks().forEach(function (track) {
-            track.stop()
-        })
-        elem.parentNode.removeChild(elem)
+        // elem.srcObject.getTracks().forEach(function (track) {
+        //     track.stop()
+        // })
+        console.log(elem);
+        if (elem) elem.parentNode.removeChild(elem)
 
         this.consumers.delete(consumer_id)
     }
