@@ -37,8 +37,7 @@ const Control: FunctionComponent<Props> = ({
                 setVideoDevices(vds)
             })
         } catch (error) {
-            console.log(error);
-
+            alert("No device or no permission use device");
         }
         if (!rc) return;
         rc.localMediaEl = localVideo.current;

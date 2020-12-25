@@ -437,11 +437,13 @@ class RoomClient {
         const {
             rtpCapabilities
         } = this.device
+        console.log("rtpCapabilities", rtpCapabilities);
         const data = await this.socket.request('consume', {
             rtpCapabilities,
             consumerTransportId: this.consumerTransport.id, // might be 
             producerId
         });
+        console.log("data consume", data);
         const {
             id,
             kind,
@@ -456,8 +458,9 @@ class RoomClient {
             rtpParameters,
             codecOptions,
         })
-        const stream = new MediaStream();
-        stream.addTrack(consumer.track);
+        console.log("consumer", consumer);
+        const stream = new MediaStream([ consumer.track]);
+        console.log("stream", stream);
         return {
             consumer,
             stream,
