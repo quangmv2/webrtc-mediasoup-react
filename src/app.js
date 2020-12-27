@@ -25,7 +25,7 @@ app.get('/', (req, res) => {
     res.sendFile(join(__dirname, "../client/build/index.html"));
 });
 
-httpsServer.listen(config.listenPort, config.listenIp, () => {
+httpsServer.listen(config.listenPort, () => {
     console.log('listening https ' + config.listenPort)
 })
 
