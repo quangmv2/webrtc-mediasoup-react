@@ -1,7 +1,7 @@
 const express = require('express')
 
 const app = express()
-const https = require('httpolyglot')
+const https = require('http')
 const fs = require('fs')
 const mediasoup = require('mediasoup')
 const config = require('./config')
@@ -15,7 +15,8 @@ const options = {
     cert: fs.readFileSync(path.join(__dirname,config.sslCrt), 'utf-8')
 }
 
-const httpsServer = https.createServer(options, app)
+// const httpsServer = https.createServer(options, app)
+const httpsServer = https.Server(app)
 const io = require('socket.io')(httpsServer)
 
 app.use(express.static(path.join(__dirname, '..', 'client/build')))
