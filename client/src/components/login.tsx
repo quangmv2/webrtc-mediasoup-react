@@ -4,6 +4,7 @@ import Checkbox from 'antd/lib/checkbox/Checkbox';
 import React, { FunctionComponent, useEffect, useState } from 'react';
 import './login.css';
 import IconWebinar from "../assets/webinar-icon.png";
+import { useForm } from 'antd/lib/form/Form';
 
 
 const layout = {
@@ -22,6 +23,18 @@ const Login: FunctionComponent<Props> = ({
     onLogin
 }) => {
 
+    const [form] = useForm();
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(location.search);
+        const myParam = urlParams.get('room');
+        console.log(myParam);
+        if (myParam) form.setFieldsValue({
+            room: myParam
+        })
+        
+    }, []);
+
     const submit = (values: any) => {
         onLogin(values.username, values.room);
         console.log(values);
@@ -35,6 +48,7 @@ const Login: FunctionComponent<Props> = ({
                 name="basic"
                 initialValues={{ username: Math.round(Math.random() * 1000) + '', room: "123", remember: true }}
                 onFinish={submit}
+                form={form}
             //   onFinishFailed={onFinishFailed}
             >
                 <Form.Item
@@ -52,7 +66,6 @@ const Login: FunctionComponent<Props> = ({
                     label="Room"
                     name="room"
                     rules={[{ required: true, message: 'Please input your room!' }]}
-
                 >
                     <Input
                     />
