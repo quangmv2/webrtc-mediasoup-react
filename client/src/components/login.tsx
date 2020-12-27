@@ -41,8 +41,10 @@ const Login: FunctionComponent<Props> = ({
                     label="Username"
                     name="username"
                     rules={[{ required: true, message: 'Please input your username!' }]}
+
                 >
                     <Input
+                        autoFocus={true}
                     />
                 </Form.Item>
 
@@ -50,7 +52,7 @@ const Login: FunctionComponent<Props> = ({
                     label="Room"
                     name="room"
                     rules={[{ required: true, message: 'Please input your room!' }]}
-                    
+
                 >
                     <Input
                     />
@@ -62,7 +64,7 @@ const Login: FunctionComponent<Props> = ({
 
                 <Form.Item {...tailLayout}>
                     <Button type="primary" htmlType="submit">
-                        Submit
+                        Join to room
                     </Button>
                 </Form.Item>
             </Form>

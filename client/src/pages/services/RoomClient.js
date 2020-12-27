@@ -1,3 +1,5 @@
+import { message } from "antd"
+
 const mediaType = {
     audio: 'audioType',
     video: 'videoType',
@@ -12,6 +14,12 @@ const _EVENTS = {
     stopAudio: 'stopAudio',
     startScreen: 'startScreen',
     stopScreen: 'stopScreen'
+}
+
+export const TYPE_CHANGE_USER = {
+    join: "join",
+    add: "add",
+    exit: "exit"
 }
 
 class RoomClient {
@@ -32,12 +40,19 @@ class RoomClient {
         this.consumers = new Map()
         this.producers = new Map()
 
+        this.users = []
+
+        this.streams = [];
+
         /**
          * map that contains a mediatype as key and producer_id as value
          */
         this.producerLabel = new Map()
 
         this.onStream = () => {}
+        this.onChangeUser = (user, type) => {
+
+        }
 
         this._isOpen = false
         this.eventListeners = new Map()
@@ -85,7 +100,10 @@ class RoomClient {
             name,
             room_id
         }).then(async function (e) {
-            console.log(e)
+            this.users = e?.data.users
+            console.log("join", e.data);
+            this.onChangeUser(e?.data, TYPE_CHANGE_USER.join)
+            console.log("peers", e)
             const data = await this.request('getRouterRtpCapabilities');
             let device = await this.loadDevice(data)
             this.device = device
@@ -115,6 +133,8 @@ class RoomClient {
     }
 
     async initTransports(device) {
+
+        // const peers = this.socket.on('new-peer')
 
         // init producerTransport
         {
@@ -248,8 +268,19 @@ class RoomClient {
             }
         }.bind(this))
 
+        this.socket.on("new-user", (data) => {
+            this.users = data?.users
+            this.onChangeUser(data, TYPE_CHANGE_USER.add)
+        })
+
+        this.socket.on("delete-user", (data) => {
+            this.users = data?.users
+            this.onChangeUser(data, TYPE_CHANGE_USER.exit)
+        })
+
         this.socket.on('disconnect', function () {
             this.exit(true)
+            message.error("Disconnect to server", 2);
         }.bind(this))
 
 
@@ -257,6 +288,10 @@ class RoomClient {
 
 
     //////// MAIN FUNCTIONS /////////////
+
+    getUsers() {
+        return this.users;
+    }
 
 
     async produce(type, deviceId = null) {
@@ -301,7 +336,7 @@ class RoomClient {
                 return
                 break;
         }
-        if (!this.device.canProduce('video') && !audio) {
+        if (this.device && !this.device.canProduce('video') && !audio) {
             console.error('cannot produce video');
             return;
         }
@@ -346,6 +381,7 @@ class RoomClient {
             console.log('producer', producer)
 
             this.producers.set(producer.id, producer)
+            console.log("change producers", this.producers);
 
             let elem
             console.log(this.localMediaEl.childNodes);
@@ -372,6 +408,8 @@ class RoomClient {
                     elem.parentNode.removeChild(elem)
                 }
                 this.producers.delete(producer.id)
+            console.log("change producers", this.producers);
+
 
             })
 
@@ -384,6 +422,8 @@ class RoomClient {
                     elem.parentNode.removeChild(elem)
                 }
                 this.producers.delete(producer.id)
+            console.log("change producers", this.producers);
+
 
             })
 
@@ -419,6 +459,8 @@ class RoomClient {
         }) {
 
             this.consumers.set(consumer.id, consumer)
+
+            console.log("consumers", this.consumers);
 
             let elem;
             if (kind === 'video') {
@@ -495,6 +537,9 @@ class RoomClient {
         this.producers.get(producer_id).close()
         this.producers.delete(producer_id)
         this.producerLabel.delete(type)
+
+        console.log("change producers", this.producers);
+
 
         if (type !== mediaType.audio) {
             let elem = document.getElementById(producer_id)

@@ -1,10 +1,11 @@
-import { Button } from 'antd';
+import { Button, message } from 'antd';
 import React, { FunctionComponent, useEffect, useRef, useState } from 'react';
-import { RoomClient } from '../pages/services/RoomClient';
+import { RoomClient, TYPE_CHANGE_USER } from '../pages/services/RoomClient';
 import './index.css';
 import VideoContainer from './video-container';
-import { AudioMutedOutlined, AudioOutlined, FundProjectionScreenOutlined, PhoneOutlined, VideoCameraOutlined, VideoCameraTwoTone } from "@ant-design/icons";
-
+import { AudioMutedOutlined, AudioOutlined, CloseOutlined, FullscreenExitOutlined, FullscreenOutlined, FundProjectionScreenOutlined, PhoneOutlined, UnorderedListOutlined, VideoCameraOutlined, VideoCameraTwoTone } from "@ant-design/icons";
+import { User } from './list-user/user';
+import Users from './list-user';
 
 interface Props {
     rc?: RoomClient
@@ -17,8 +18,11 @@ const Control: FunctionComponent<Props> = ({
     const [audio, setAudio] = useState<boolean>(false);
     const [video, setVideo] = useState<boolean>(false);
     const [screen, setScreen] = useState<boolean>(false);
+    const [fullScreen, setFullScreen] = useState<boolean>(false);
+    const [openListUser, setOpenListUser] = useState<boolean>(true);
     const [audioDevices, setAudioDevices] = useState<any[]>([]);
     const [videoDevices, setVideoDevices] = useState<any[]>([]);
+    const [users, setUsers] = useState<User[]>([]);
     const localVideo = useRef(null)
     const remoteVideo = useRef(null)
 
@@ -34,7 +38,9 @@ const Control: FunctionComponent<Props> = ({
                     }
                 });
                 setAudioDevices(ads);
-                setVideoDevices(vds)
+                setVideoDevices(vds);
+                openCamera(vds);
+                openAudio(ads);
             })
         } catch (error) {
             alert("No device or no permission use device");
@@ -42,14 +48,38 @@ const Control: FunctionComponent<Props> = ({
         if (!rc) return;
         rc.localMediaEl = localVideo.current;
         rc.remoteVideoEl = remoteVideo.current;
+        rc.onChangeUser = (data: any, type: string) => {
+            
+            const userCollection: User[] = data?.users || [];
+            // console.log("chage",    userCollection);
+
+            setUsers(userCollection);
+            console.log(data?.user);
+            
+            switch (type) {
+                case TYPE_CHANGE_USER.join:
+                    message.success("Join success", 2)
+                    break;
+                case TYPE_CHANGE_USER.add:
+                    message.success(data?.user?.name + " Join", 2);
+                    break;
+                case TYPE_CHANGE_USER.exit:
+                    message.error(data?.user?.name + " exit", 2);
+                    break;
+                default:
+                    break;
+            }
+        }
+
     }, []);
 
     useEffect(() => {
-        if (!rc || !videoDevices || videoDevices.length == 0) return;
+        if (!rc) return;
+        console.log("users", rc.getUsers())
         addListeners();
-        openCamera();
-        openAudio();
     }, [rc]);
+
+
 
 
     const addListeners = () => {
@@ -74,7 +104,7 @@ const Control: FunctionComponent<Props> = ({
         })
     }
 
-    const openCamera = () => {
+    const openCamera = (list?: any[]) => {
         if (screen) return;
         console.log("video", video);
         if (video) {
@@ -84,10 +114,14 @@ const Control: FunctionComponent<Props> = ({
             return;
         }
         setVideo(true);
+        if (list) {
+            rc?.produce(RoomClient.mediaType.video, list[0].value);
+            return;
+        }
         rc?.produce(RoomClient.mediaType.video, videoDevices[0].value);
     }
 
-    const openAudio = () => {
+    const openAudio = (list?: any) => {
         console.log("video", audio);
         if (audio) {
             console.log("close vd", audio);
@@ -96,6 +130,10 @@ const Control: FunctionComponent<Props> = ({
             return;
         }
         setAudio(true);
+        if (list) {
+            rc?.produce(RoomClient.mediaType.audio, list[0].value);
+            return;
+        }
         rc?.produce(RoomClient.mediaType.audio, audioDevices[0].value);
     }
 
@@ -117,8 +155,35 @@ const Control: FunctionComponent<Props> = ({
         location.reload();
     }
 
+    const toggleFullscreen = () => {
+        if (!document.fullscreen)
+            document.body.requestFullscreen().then(() => setFullScreen(true))
+        else document.exitFullscreen().then(() => setFullScreen(false))
+    }
+
     return (
         <>
+            <div>
+                <div className="feature"
+                >
+                   <div className="button">
+                   <Button icon={fullScreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+                        shape="circle"
+                        size="large"
+                        type="primary"
+                        onClick={toggleFullscreen}
+                    />
+                    <Button icon={openListUser ? <CloseOutlined /> : <UnorderedListOutlined />}
+                        shape="circle"
+                        size="large"
+                        type="primary"
+                        onClick={() => setOpenListUser(b => !b)}
+                    />
+                   </div>
+                    <Users users={users} visible={openListUser} placement="right" />
+
+                </div>
+            </div>
             <VideoContainer local={localVideo} remote={remoteVideo} />
             <div className="control-container">
                 <div className="control">
@@ -142,13 +207,13 @@ const Control: FunctionComponent<Props> = ({
                     <br /> */}
                     <div className="button-control">
                         <Button shape="circle" icon={audio ? <AudioOutlined /> : <AudioMutedOutlined />}
-                            onClick={openAudio}
+                            onClick={() => openAudio()}
                             type={audio ? "primary" : 'dashed'}
                             size="large"
                         >
                         </Button>
                         <Button shape="circle" icon={<VideoCameraOutlined />}
-                            onClick={openCamera}
+                            onClick={() => openCamera()}
                             type={video ? "primary" : 'dashed'}
                             size="large"
                         >

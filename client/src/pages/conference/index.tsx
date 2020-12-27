@@ -6,7 +6,7 @@ import { Device } from "mediasoup-client";
 import io from  "../services/socketio";
 import { RoomClient } from "../services/RoomClient";
 
-const socket = io("/", {
+const socket = io("https://localhost:3016/", {
     transports: ["websocket", "polling"]
 });
 
@@ -37,7 +37,8 @@ function Conference() {
     return (
         <div className="container">
             {
-                login ? <Control rc={rc} /> :
+                login ? <Control rc={rc} />
+                  :
                     <Login onLogin={joinRoom} />
             }
         </div>

@@ -18,9 +18,11 @@ for (var dev in ifaces) {
     if(iface.length > 0) address = iface[0].address;
 }
 
+address = '127.0.0.0'
+
 module.exports = {
     listenIp: '0.0.0.0',
-    listenPort: 5000,
+    listenPort: 3016,
     sslCrt: '../ssl/cert.pem',
     sslKey: '../ssl/key.pem',
     

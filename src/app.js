@@ -100,12 +100,12 @@ io.on('connection', socket => {
         } else {
             console.log('---created room--- ', room_id)
             let worker = await getMediasoupWorker()
-            roomList.set(room_id, new Room(room_id, worker, io))
+            roomList.set(room_id, new Room(room_id, worker, io, socket.id))
             callback(room_id)
         }
     })
 
-    socket.on('join', ({
+    socket.on('join', async ({
         room_id,
         name
     }, cb) => {
@@ -117,9 +117,35 @@ io.on('connection', socket => {
             })
         }
         roomList.get(room_id).addPeer(new Peer(socket.id, name))
-        socket.room_id = room_id
-
-        cb(roomList.get(room_id).toJson())
+        socket.room_id = room_id;
+        const produceList = roomList.get(room_id).getProducerListForPeer(socket.id);
+        console.log(produceList);
+        
+        await roomList.get(room_id).addUser({
+            _id: socket.id,
+            name: name
+        });
+        const userOfRoom = roomList.get(room_id).getUsersOfRoom();
+        userOfRoom.forEach(user => {
+            if (user._id == socket.id) return;
+            socket.to(user._id).emit('new-user', {
+                users: userOfRoom,
+                user: {
+                    _id: socket.id,
+                    name
+                }
+            });
+        })
+        cb({
+            peers: roomList.get(room_id).toJson(),
+            data : {
+                user: {
+                    _id: room_id,
+                    name
+                },
+                users: userOfRoom
+            }
+        })
     })
 
     socket.on('getProducers', () => {
@@ -127,8 +153,8 @@ io.on('connection', socket => {
         // send all the current producer to newly joined member
         if (!roomList.has(socket.room_id)) return
         let producerList = roomList.get(socket.room_id).getProducerListForPeer(socket.id)
-
         socket.emit('newProducers', producerList)
+        console.log(socket.rooms);
     })
 
     socket.on('getRouterRtpCapabilities', (_, callback) => {
@@ -212,7 +238,20 @@ io.on('connection', socket => {
     socket.on('disconnect', () => {
         console.log(`---disconnect--- name: ${roomList.get(socket.room_id) && roomList.get(socket.room_id).getPeers().get(socket.id).name}`)
         if (!socket.room_id) return
-        roomList.get(socket.room_id).removePeer(socket.id)
+        const room = roomList.get(socket.room_id)
+        if (!room) return;
+        const userExit = room.getUserOfRoom(socket.id);
+        room.removePeer(socket.id)
+        room.removeUser(socket.id);
+        const userOfRoom = room.getUsersOfRoom();
+        console.log(userExit);
+        userOfRoom.forEach(user => {
+            if (user._id == socket.id) return;
+            socket.to(user._id).emit('delete-user', {
+                users: userOfRoom,
+                user: userExit
+            });
+        })
     })
 
     socket.on('producerClosed', ({
@@ -232,6 +271,7 @@ io.on('connection', socket => {
         }
         // close transports
         await roomList.get(socket.room_id).removePeer(socket.id)
+        await roomList.get(socket.room_id).removeUser(socket.id);
         if (roomList.get(socket.room_id).getPeers().size === 0) {
             roomList.delete(socket.room_id)
         }
