@@ -6,7 +6,7 @@ import { Device } from "mediasoup-client";
 import io from  "../services/socketio";
 import { RoomClient } from "../services/RoomClient";
 
-const socket = io("/", {
+const socket = io("http://localhost:3016/", {
     transports: ["websocket", "polling"]
 });
 

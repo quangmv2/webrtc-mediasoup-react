@@ -59,6 +59,15 @@ module.exports = {
             },
             {
               kind: 'video',
+              mimeType: 'video/h264',
+              clockRate: 90000,
+              parameters:
+                {
+                  'x-google-start-bitrate': 1000
+                }
+            },
+            {
+              kind: 'screen',
               mimeType: 'video/VP8',
               clockRate: 90000,
               parameters:
