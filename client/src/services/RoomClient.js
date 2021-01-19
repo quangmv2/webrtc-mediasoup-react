@@ -19,7 +19,17 @@ const _EVENTS = {
 export const TYPE_CHANGE_USER = {
     join: "join",
     add: "add",
-    exit: "exit"
+    exit: "exit",
+    reload: "reload"
+}
+
+export const EVENTS = {
+    onChangeStream: "on-change-stream"
+}
+
+export const EVENT_CHANGE_STREAM = {
+    add: "add",
+    remove: "remove"
 }
 
 class RoomClient {
@@ -40,18 +50,37 @@ class RoomClient {
         this.consumers = new Map()
         this.producers = new Map()
 
-        this.users = []
+        this.users = new Map()
 
-        this.streams = [];
+        this.streams = new Map();
+        this.audios = new Map();
+        this.locals = [];
 
         /**
          * map that contains a mediatype as key and producer_id as value
          */
         this.producerLabel = new Map()
 
-        this.onStream = () => {}
+        this.onStream = (streams) => {}
+        this.onStreamLocal = (streams) => {}
         this.onChangeUser = (user, type) => {
 
+        }
+        
+        this.events = new Map();
+
+        this.addListener = (event, _callback) => {
+            if (!this.events.get(event)) this.events.set(event, [])
+            const _callbacks = this.events.get(event);
+            _callbacks.push(_callback)
+        }
+        this.removeListener = (event, _callback) => {
+            console.log("events", this.events);
+            if (!this.events.get(event)) return;
+            const _callbacks = this.events.get(event);
+            const index = _callbacks.findIndex(i => i == _callback);
+            _callbacks.splice(index, 1);
+            console.log("events", this.events);
         }
 
         this._isOpen = false
@@ -100,7 +129,9 @@ class RoomClient {
             name,
             room_id
         }).then(async function (e) {
-            this.users = e?.data.users
+            this.users.clear()
+            e?.data.users.forEach(us => this.users.set(us._id, us));
+            this.onChangeUser(this.users, TYPE_CHANGE_USER.reload)
             console.log("join", e.data);
             this.onChangeUser(e?.data, TYPE_CHANGE_USER.join)
             console.log("peers", e)
@@ -262,19 +293,21 @@ class RoomClient {
         this.socket.on('newProducers', async function (data) {
             console.log('new producers', data)
             for (let {
-                    producer_id
+                    producer_id,
+                    producer_socket_id
                 } of data) {
-                await this.consume(producer_id)
+                await this.consume(producer_id, producer_socket_id)
             }
         }.bind(this))
 
         this.socket.on("new-user", (data) => {
-            this.users = data?.users
+            this.users.set(data?.user._id, data?.user)
+            console.log(this.users);
             this.onChangeUser(data, TYPE_CHANGE_USER.add)
         })
 
         this.socket.on("delete-user", (data) => {
-            this.users = data?.users
+            this.users.delete(data?.user._id)
             this.onChangeUser(data, TYPE_CHANGE_USER.exit)
         })
 
@@ -282,17 +315,34 @@ class RoomClient {
             this.exit(true)
             message.error("Disconnect to server", 2);
         }.bind(this))
-
-
     }
 
 
     //////// MAIN FUNCTIONS /////////////
 
     getUsers() {
-        return this.users;
+        return Array.from(this.users.keys()).reduce((arr, key) => {arr.push(this.users.get(key)); return arr;}, []);
     }
 
+    getStreams() {
+        return this.streams;
+    }
+
+    getAudios() {
+        return this.audios;
+    }
+
+    getStreamsById(_id) {
+        const consumers = Array.from(this.consumers.keys()).reduce((arr, key) => {
+            const cs = this.consumers.get(key);
+            if (cs && cs.kind == "video" && cs.userID == _id) arr.push(cs.id)
+            return arr;
+        }, []);
+        return consumers.reduce((arr, cs) => {
+            arr.push(this.streams.get(cs));
+            return arr;
+        }, []);
+    }
 
     async produce(type, deviceId = null) {
         let mediaConstraints = {}
@@ -385,14 +435,17 @@ class RoomClient {
 
             let elem
             console.log(this.localMediaEl.childNodes);
-            if (!audio && this.localMediaEl.childNodes.length == 0) {
-                elem = document.createElement('video')
-                elem.srcObject = stream
-                elem.id = producer.id
-                elem.playsinline = false
-                elem.autoplay = true
-                elem.className = "vid"
-                this.localMediaEl.appendChild(elem)
+            if (!audio) {
+                // elem = document.createElement('video')
+                // elem.srcObject = stream
+                // elem.id = producer.id
+                // elem.playsinline = false
+                // elem.autoplay = true
+                // elem.className = "vid"
+                // this.localMediaEl.srcObject = stream
+                this.locals.push(stream);
+                console.log("locals", this.locals);
+                this.onStreamLocal(this.locals)
             }
 
             producer.on('trackended', () => {
@@ -448,7 +501,7 @@ class RoomClient {
         }
     }
 
-    async consume(producer_id) {
+    async consume(producer_id, userID) {
 
         //let info = await roomInfo()
 
@@ -457,27 +510,39 @@ class RoomClient {
             stream,
             kind
         }) {
-
+            consumer.userID = userID
             this.consumers.set(consumer.id, consumer)
-
+            const user_tmp = this.users.get(userID);
+            console.log(user_tmp);
+            if (!user_tmp.consumers) 
+                user_tmp["consumers"] = new Map()
+            user_tmp.consumers.set(consumer.id, consumer)
+            this.onChangeUser(this.users, TYPE_CHANGE_USER.reload)
+            console.log("con", this.users);
             console.log("consumers", this.consumers);
 
             let elem;
             if (kind === 'video') {
-                elem = document.createElement('video')
-                elem.srcObject = stream
-                elem.id = consumer.id
-                elem.playsinline = false
-                elem.autoplay = true
-                elem.className = "vid"
-                this.remoteVideoEl.appendChild(elem)
+                // elem = document.createElement('video')
+                // elem.srcObject = stream
+                // elem.id = consumer.id
+                // elem.playsinline = false
+                // elem.autoplay = true
+                // elem.className = "vid"
+                // this.remoteVideoEl.appendChild(elem)
+                // console.log(stream);
+                this.streams.set(consumer.id, stream)
+                // this.onChangeStream(userID)
+                // this.onStream(elem)
+                const __callbacks = this.events.get(EVENTS.onChangeStream);
+                __callbacks.forEach(cb => cb(userID, EVENT_CHANGE_STREAM.add))
             } else {
-                elem = document.createElement('audio')
-                elem.srcObject = stream
-                elem.id = consumer.id
-                elem.playsinline = false
-                elem.autoplay = true
-                // this.remoteAudioEl.appendChild(elem)
+                // elem = document.createElement('audio')
+                // elem.srcObject = stream
+                // elem.id = consumer.id
+                // elem.playsinline = false
+                // elem.autoplay = true
+                // // this.remoteAudioEl.appendChild(elem)
             }
 
             consumer.on('trackended', function () {
@@ -541,13 +606,13 @@ class RoomClient {
         console.log("change producers", this.producers);
 
 
-        if (type !== mediaType.audio) {
-            let elem = document.getElementById(producer_id)
-            elem.srcObject.getTracks().forEach(function (track) {
-                track.stop()
-            })
-            elem.parentNode.removeChild(elem)
-        }
+        // if (type !== mediaType.audio) {
+        //     let elem = document.getElementById(producer_id)
+        //     elem.srcObject.getTracks().forEach(function (track) {
+        //         track.stop()
+        //     })
+        //     elem.parentNode.removeChild(elem)
+        // }
 
         switch (type) {
             case mediaType.audio:
@@ -555,6 +620,8 @@ class RoomClient {
                 break
             case mediaType.video:
                 this.event(_EVENTS.stopVideo)
+                this.locals.shift()
+                // this.onStream()
                 break
             case mediaType.screen:
                 this.event(_EVENTS.stopScreen)
@@ -587,13 +654,21 @@ class RoomClient {
     }
 
     removeConsumer(consumer_id) {
-        let elem = document.getElementById(consumer_id)
-        // elem.srcObject.getTracks().forEach(function (track) {
-        //     track.stop()
-        // })
-        console.log(elem);
-        if (elem) elem.parentNode.removeChild(elem)
-
+        // let elem = document.getElementById(consumer_id)
+        // // elem.srcObject.getTracks().forEach(function (track) {
+        // //     track.stop()
+        // // })
+        // console.log(elem);
+        // if (elem) elem.parentNode.removeChild(elem)
+        
+        console.log("ss", this.users);
+        console.log(consumer_id);
+        const consumer = this.consumers.get(consumer_id);
+        console.log(this.consumers, consumer);
+        if (consumer) this.events.get(EVENTS.onChangeStream).forEach(cb => cb(consumer.userID, EVENT_CHANGE_STREAM.remove))
+        this.onChangeUser(this.users, TYPE_CHANGE_USER.reload)
+        console.log("ss", this.users);
+        this.streams.delete(consumer_id)
         this.consumers.delete(consumer_id)
     }
 

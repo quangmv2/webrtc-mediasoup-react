@@ -1,7 +1,7 @@
 const express = require('express')
 
 const app = express()
-const https = require('http')
+const https = require('httpolyglot')
 const fs = require('fs')
 const mediasoup = require('mediasoup')
 const config = require('./config')
@@ -15,8 +15,8 @@ const options = {
     cert: fs.readFileSync(path.join(__dirname,config.sslCrt), 'utf-8')
 }
 
-// const httpsServer = https.createServer(options, app)
-const httpsServer = https.Server(app)
+const httpsServer = https.createServer(options, app)
+// const httpsServer = https.Server(app)
 const io = require('socket.io')(httpsServer)
 
 app.use(express.static(path.join(__dirname, '..', 'client/build')))
@@ -154,6 +154,7 @@ io.on('connection', socket => {
         // send all the current producer to newly joined member
         if (!roomList.has(socket.room_id)) return
         let producerList = roomList.get(socket.room_id).getProducerListForPeer(socket.id)
+        console.log("new", producerList);
         socket.emit('newProducers', producerList)
         console.log(socket.rooms);
     })

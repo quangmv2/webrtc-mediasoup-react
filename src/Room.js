@@ -40,8 +40,10 @@ module.exports = class Room {
         let producerList = []
         this.peers.forEach(peer => {
             peer.producers.forEach(producer => {
+                console.log("dd", producer, peer);
                 producerList.push({
-                    producer_id: producer.id
+                    producer_id: producer.id,
+                    producer_socket_id: peer.id
                 })
             })
         })

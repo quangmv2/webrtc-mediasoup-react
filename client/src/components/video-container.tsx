@@ -4,8 +4,8 @@ import Video from './video';
 import IconWebinar from "../assets/webinar-icon.png";
 
 interface Props {
-    local: RefObject<HTMLDivElement>,
-    remote: RefObject<HTMLDivElement>,
+    local: RefObject<any>,
+    remote: RefObject<any>,
 }
 
 const VideoContainer: FunctionComponent<Props> = ({

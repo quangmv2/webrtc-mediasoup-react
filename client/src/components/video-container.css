@@ -44,3 +44,13 @@
     flex: 1;
     min-width: 400px;
 }
+
+.remote-video div {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #FFF;
+    text-align: center;
+    font-size: 60px;
+}

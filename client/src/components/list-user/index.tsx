@@ -1,20 +1,26 @@
 import React, { FunctionComponent } from 'react';
 import UserComponent, { User } from './user';
 import './index.css';
+import { RoomClient } from '../../services/RoomClient';
 
 
 interface Props {
     className?: string,
     visible?: boolean,
     placement?: "left" | "top" | "right" | "bottom",
-    users: User[]
+    users: User[],
+    onClickUser: Function,
+    roomClient?: RoomClient,
+    user?: User
 }
 
 const Users: FunctionComponent<Props> = ({
     className,
     visible = false,
     placement = "left",
-    users
+    users,
+    onClickUser,
+    roomClient,
 }) => {
 
     return (
@@ -34,7 +40,9 @@ const Users: FunctionComponent<Props> = ({
             > */}
                 {
                     users.map(user => <UserComponent 
+                                        onClick={onClickUser}
                                         user={user} 
+                                        roomClient={roomClient}
                                         key={user._id}
                                         className='user' />)
                 }
