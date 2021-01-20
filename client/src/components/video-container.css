@@ -15,6 +15,7 @@
     position: absolute;
     top: 50px;
     left: 50px;
+    z-index: 20;
 }
 
 .local-video {
@@ -22,6 +23,7 @@
     max-width: 350px;
     bottom: 50px;
     left: 20px;
+    z-index: 10;
 }
 
 .local-video video {
@@ -53,4 +55,46 @@
     color: #FFF;
     text-align: center;
     font-size: 60px;
+}
+
+.remote-video {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #FFF;
+    text-align: center;
+    font-size: 60px;
+    position: relative;
+}
+
+.remote-video p {
+    color: #FFF;
+    text-align: center;
+    font-size: 60px;
+}
+
+.remote-video .hidden {
+    display: none;
+}
+
+.remote-video canvas {
+    max-width: 100vw;
+    max-height: 100vh;
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    z-index: 8;
+}
+
+.remote-video .ai {
+    position: absolute;
+    z-index: 10;
+    top: 20px;
+    right: 250px;
+    /* background-color: white; */
+    /* color: white; */
+    padding: 5px;
+    background-color: white;
+    border-radius: 10px;
 }

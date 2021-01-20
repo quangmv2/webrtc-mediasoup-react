@@ -5,7 +5,7 @@ import { EVENTS, EVENT_CHANGE_STREAM, RoomClient } from '../../services/RoomClie
 import './index.css';
 
 export type User = {
-    _id : string;
+    _id: string;
     name: string;
     consumers?: Map<string, Consumer>
 }
@@ -40,18 +40,16 @@ const Video: FunctionComponent<Props> = ({
         else {
             if (video && video.current)
                 video.current.srcObject = null
-            console.log("remove");
-            
         }
     }
 
     const addVideoStream = () => {
         if (!roomClient) return;
-        const stream: MediaStream[] = roomClient.getStreamsById(user._id) 
+        const stream: MediaStream[] = roomClient.getStreamsById(user._id)
         if (video && video.current && stream.length > 0)
             video.current.srcObject = stream[0]
         console.log("user", stream);
-        
+
     }
 
     return (

@@ -13,6 +13,7 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.17.1",
+    "express-subdomain": "^1.0.5",
     "httpolyglot": "^0.1.2",
     "mediasoup": "^3.6.29",
     "mediasoup-client": "^3.6.25",

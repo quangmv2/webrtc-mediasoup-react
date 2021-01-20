@@ -8,6 +8,7 @@
     justify-content: center;
     align-items: center;
     flex-direction: column;
+    z-index: 20;
 }
 
 .control {
@@ -26,7 +27,7 @@
 .feature {
     position: absolute;
     height: calc(100vh);
-    z-index: 2;
+    z-index: 10;
     /* top: 10px; */
     right: 0px;
     /* padding: 5px; */

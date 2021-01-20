@@ -25,8 +25,9 @@ const Control: FunctionComponent<Props> = ({
     const [videoDevices, setVideoDevices] = useState<any[]>([]);
     const [users, setUsers] = useState<User[]>([]);
     const [streams, setStreams] = useState<Map<string, MediaStream>>();
-    const localVideo = useRef<HTMLDivElement>(null)
-    const remoteVideo = useRef<HTMLDivElement>(null)
+    const [localVideo, setLocalVideo] = useState<MediaStream | null>(null)
+    const [remoteVideo, setRemoteVideo] = useState<MediaStream | null>(null)
+    const [userID, setUserID] = useState<string>(null);
 
     useEffect(() => {
         try {
@@ -48,18 +49,13 @@ const Control: FunctionComponent<Props> = ({
             alert("No device or no permission use device");
         }
         if (!rc) return;
-        console.log(rc.socket.id);
-
-        rc.localMediaEl = localVideo.current;
-        rc.remoteVideoEl = remoteVideo.current;
         rc.onChangeUser = (data: any, type: string) => {
             if (type == TYPE_CHANGE_USER.reload) {
                 console.log(rc.getUsers(), rc.getUsers().filter((us: User) => us._id != rc.socket.id));
 
-                setUsers(rc.getUsers().filter((us: User) => us._id != rc.socket.id))
                 return;
             }
-
+            setUsers(rc.getUsers().filter((us: User) => us._id != rc.socket.id))
             switch (type) {
                 case TYPE_CHANGE_USER.join:
                     message.success("Join success", 2)
@@ -83,7 +79,16 @@ const Control: FunctionComponent<Props> = ({
         addListeners();
     }, [rc]);
 
+    useEffect(() => {
+        setUserID(_id => {
+            if (!users.find(us => us._id == _id)) return null;
+            return _id;
+        })
+    }, [users])
 
+    useEffect(() => {
+        if (userID == null) setRemoteVideo(null);
+    }, [userID])
 
 
     const addListeners = () => {
@@ -106,59 +111,45 @@ const Control: FunctionComponent<Props> = ({
         })
         rc.on(RoomClient.EVENTS.exitRoom, () => {
         })
-        // rc.onStream = onStream
         rc.onStreamLocal = onStreamLocal
     }
-
-    // const onStream = (streams: any) => {
-    //     console.log(streams);
-    //     if (streams) {
-    //         // const video = document.createElement('video');
-    //         // video.srcObject = streams;
-    //         // video.autoplay = true;
-    //         // video.playsInline = true;
-    //         // video.className = "vid"
-    //         while (remoteVideo.current?.lastElementChild) remoteVideo.current.removeChild(remoteVideo.current.lastElementChild)
-    //         remoteVideo.current?.appendChild(streams);
-    //     }
-    // }
 
     const onStreamLocal = (streams: MediaStream[]) => {
         console.log(streams);
         if (streams && streams.length > 0) {
-            console.log("st", streams);
-
-            while (localVideo.current?.lastElementChild) localVideo.current.removeChild(localVideo.current.lastElementChild)
-            const video = document.createElement('video');
-            video.srcObject = streams[0];
-            video.autoplay = true;
-            video.playsInline = true;
-            video.className = "vid"
-            localVideo.current?.appendChild(video);
+            setLocalVideo(streams[streams.length - 1]);
         }
     }
 
-    // console.log("stera", streams);
-
-
     const openCamera = (list?: any[]) => {
-        if (screen) return;
+        if (screen) {
+            closeScreen();
+        };
         console.log("video", video);
         if (video) {
             console.log("close vd", video);
-            rc?.closeProducer(RoomClient.mediaType.video);
-            while (localVideo.current?.lastElementChild) localVideo.current.removeChild(localVideo.current.lastElementChild)
-            setVideo(false)
+            closeVideo();
             return;
         }
-        setVideo(true);
-        if (list) {
+        if (list && list.length > 0) {
             rc?.produce(RoomClient.mediaType.video, list[0]?.value);
+            setVideo(true);
+
             return;
         }
-        console.log("vddv", videoDevices);
+        if (videoDevices && videoDevices.length > 0) {
+            rc?.produce(RoomClient.mediaType.video, videoDevices[0].deviceId);
+            setVideo(true);
+            return
+        }
+        message.error("No camera")
 
-        rc?.produce(RoomClient.mediaType.video, videoDevices[0].deviceId);
+    }
+
+    const closeVideo = () => {
+        rc?.closeProducer(RoomClient.mediaType.video);
+        setLocalVideo(null);
+        setVideo(false)
     }
 
     const openAudio = (list?: any) => {
@@ -169,25 +160,35 @@ const Control: FunctionComponent<Props> = ({
             setAudio(false)
             return;
         }
-        setAudio(true);
-        if (list) {
+        if (list && list.length > 0) {
             rc?.produce(RoomClient.mediaType.audio, list[0]?.value);
+            setAudio(true);
             return;
         }
-        rc?.produce(RoomClient.mediaType.audio, audioDevices[0]?.value);
+        if (audioDevices && audioDevices.length > 0) {
+            setAudio(true);
+            rc?.produce(RoomClient.mediaType.audio, audioDevices[0]?.value);
+            return
+        }
+        message.error("No microphone")
     }
 
     const openScreen = () => {
-        if (video) return;
+        if (video) closeVideo();
         console.log("video", screen);
         if (screen) {
             console.log("close vd", screen);
-            rc?.closeProducer(RoomClient.mediaType.screen);
-            setScreen(false)
+            closeScreen()
             return;
         }
         setScreen(true);
         rc?.produce(RoomClient.mediaType.screen);
+    }
+
+    const closeScreen = () => {
+        rc?.closeProducer(RoomClient.mediaType.screen);
+        setLocalVideo(null);
+        setScreen(false)
     }
 
     const exit = () => {
@@ -202,24 +203,9 @@ const Control: FunctionComponent<Props> = ({
     }
 
     const onClickUser = (_id: string) => {
-        console.log(rc?.getStreamsById(_id))
+        setUserID(_id);
         const stream: MediaStream[] = rc?.getStreamsById(_id)
-        while (remoteVideo.current?.lastElementChild) remoteVideo.current.removeChild(remoteVideo.current.lastElementChild)
-        if (stream && stream.length > 0) {
-            const video = document.createElement('video');
-            video.srcObject = stream[0];
-            video.autoplay = true;
-            video.playsInline = true;
-            video.className = "vid"
-            remoteVideo.current?.appendChild(video)
-        } else {
-            const p: HTMLParagraphElement = document.createElement('p')
-            p.textContent = "No meida";
-            p.className = "text-video"
-            const div: HTMLDivElement = document.createElement('div')
-            div.appendChild(p)
-            remoteVideo.current?.appendChild(div)
-        }
+        setRemoteVideo(stream && stream.length > 0 ? stream[0] : null);
     }
 
     return (
@@ -249,24 +235,6 @@ const Control: FunctionComponent<Props> = ({
             <VideoContainer local={localVideo} remote={remoteVideo} />
             <div className="control-container">
                 <div className="control">
-                    {/* <button id='exitButton' className='hidden'>Exit</button>
-                    <br />
-        audio: <select id="audioSelect">
-                        {
-                            audioDevices && audioDevices.map(device => (
-                                <option value={device.deviceId} key={`${device.deviceId} ${device.label}`}>{device.label}</option>
-                            ))
-                        }
-                    </select>
-                    <br />
-        video: <select id="videoSelect">
-                        {
-                            videoDevices && videoDevices.map(device => (
-                                <option value={device.deviceId} key={`${device.deviceId} ${device.label}`}>{device.label}</option>
-                            ))
-                        }
-                    </select>
-                    <br /> */}
                     <div className="button-control">
                         <Button shape="circle" icon={audio ? <AudioOutlined /> : <AudioMutedOutlined />}
                             onClick={() => openAudio()}

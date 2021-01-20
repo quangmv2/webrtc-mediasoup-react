@@ -3,7 +3,7 @@ import Control from '../../components/control';
 import Login from '../../components/login';
 import './index.css';
 import { Device } from "mediasoup-client";
-import io from  "../../services/socketio";
+import io from  "../../services/lib/socketio";
 import { RoomClient } from "../../services/RoomClient";
 
 const socket = io("https://192.168.10.105:3016/", {

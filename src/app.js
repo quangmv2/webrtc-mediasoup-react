@@ -1,5 +1,5 @@
 const express = require('express')
-
+const subdomain = require('express-subdomain')
 const app = express()
 const https = require('httpolyglot')
 const fs = require('fs')
@@ -9,6 +9,7 @@ const path = require('path')
 const Room = require('./Room')
 const Peer = require('./Peer')
 const { join } = require('path')
+const router = require('./router')
 
 const options = {
     key: fs.readFileSync(path.join(__dirname,config.sslKey), 'utf-8'),
@@ -20,10 +21,19 @@ const httpsServer = https.createServer(options, app)
 const io = require('socket.io')(httpsServer)
 
 app.use(express.static(path.join(__dirname, '..', 'client/build')))
+app.use(express.static(path.join(__dirname, '..', 'client/builds')))
 
-app.get('/', (req, res) => {
+app.use(subdomain('v2', router))
+
+app.get('/v2', (req, res) => {
     res.sendFile(join(__dirname, "../client/build/index.html"));
 });
+
+
+app.get('/', (req, res) => {
+    res.sendFile(join(__dirname, "../client/builds/index.html"));
+});
+
 
 httpsServer.listen(config.listenPort, () => {
     console.log('listening https ' + config.listenPort)

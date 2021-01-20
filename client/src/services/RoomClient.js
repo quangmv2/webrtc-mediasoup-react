@@ -434,7 +434,7 @@ class RoomClient {
             console.log("change producers", this.producers);
 
             let elem
-            console.log(this.localMediaEl.childNodes);
+            // console.log(this.localMediaEl.childNodes);
             if (!audio) {
                 // elem = document.createElement('video')
                 // elem.srcObject = stream

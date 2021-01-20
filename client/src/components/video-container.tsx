@@ -1,23 +1,31 @@
-import React, { FunctionComponent, RefObject } from 'react';
+import React, { FunctionComponent, RefObject, useEffect } from 'react';
 import './video-container.css';
 import Video from './video';
+import VideoLocal from './video-local';
 import IconWebinar from "../assets/webinar-icon.png";
+import * as faceapi from "../services/dist/face-api.js";
 
 interface Props {
-    local: RefObject<any>,
-    remote: RefObject<any>,
+    local: MediaStream,
+    remote: MediaStream,
 }
 
 const VideoContainer: FunctionComponent<Props> = ({
     remote,
     local
 }) =>  {
+
+    useEffect(() => {
+        console.log(faceapi);
+        // loadAiModels()
+    }, [])
+
     return (
         <div className='video-container'>
             <img src={IconWebinar} className="icon-home" alt="webinar-icon.png" />
             
-            <Video ref={local} className="local-video" />
-            <Video ref={remote} className="remote-video" />
+            <VideoLocal className="local-video" stream={local} />
+            <Video className="remote-video" stream={remote} />
             {/* <div id="remoteAudios"></div> */}
         </div>
     );
