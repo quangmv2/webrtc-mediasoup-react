@@ -30,6 +30,32 @@ const Control: FunctionComponent<Props> = ({
     const [userID, setUserID] = useState<string>(null);
 
     useEffect(() => {
+        if (!rc) return;
+        setUsers(rc.getUsers().filter((us: User) => us._id != rc.socket.id))
+        rc.onChangeUser = (data: any, type: string) => {
+            if (type == TYPE_CHANGE_USER.reload) {
+                console.log(rc.getUsers(), rc.getUsers().filter((us: User) => us._id != rc.socket.id));
+
+                return;
+            }
+            console.log(rc.getUsers(), rc.getUsers().filter((us: User) => us._id != rc.socket.id));
+            
+            setUsers(rc.getUsers().filter((us: User) => us._id != rc.socket.id))
+            switch (type) {
+                case TYPE_CHANGE_USER.join:
+                    message.success("Join success", 2)
+                    break;
+                case TYPE_CHANGE_USER.add:
+                    message.success(data?.user?.name + " Join", 2);
+                    break;
+                case TYPE_CHANGE_USER.exit:
+                    message.error(data?.user?.name + " exit", 2);
+                    break;
+                default:
+                    break;
+            }
+        }
+
         try {
             navigator.mediaDevices.enumerateDevices().then(devices => {
                 const vds: any[] = [], ads: any[] = [];
@@ -48,30 +74,9 @@ const Control: FunctionComponent<Props> = ({
         } catch (error) {
             alert("No device or no permission use device");
         }
-        if (!rc) return;
-        rc.onChangeUser = (data: any, type: string) => {
-            if (type == TYPE_CHANGE_USER.reload) {
-                console.log(rc.getUsers(), rc.getUsers().filter((us: User) => us._id != rc.socket.id));
+        
 
-                return;
-            }
-            setUsers(rc.getUsers().filter((us: User) => us._id != rc.socket.id))
-            switch (type) {
-                case TYPE_CHANGE_USER.join:
-                    message.success("Join success", 2)
-                    break;
-                case TYPE_CHANGE_USER.add:
-                    message.success(data?.user?.name + " Join", 2);
-                    break;
-                case TYPE_CHANGE_USER.exit:
-                    message.error(data?.user?.name + " exit", 2);
-                    break;
-                default:
-                    break;
-            }
-        }
-
-    }, []);
+    }, [rc]);
 
     useEffect(() => {
         if (!rc) return;
@@ -122,6 +127,8 @@ const Control: FunctionComponent<Props> = ({
     }
 
     const openCamera = (list?: any[]) => {
+        console.log(rc.producerTransport);
+        
         if (screen) {
             closeScreen();
         };

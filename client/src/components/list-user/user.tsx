@@ -25,8 +25,11 @@ const Video: FunctionComponent<Props> = ({
 }) => {
 
     const video = useRef<HTMLVideoElement>(null);
+    const audio = useRef<HTMLAudioElement>(null);
 
     useEffect(() => {
+        console.log("user", user);
+        
         if (!roomClient) return;
         addVideoStream()
         roomClient.addListener(EVENTS.onChangeStream, changeStream)
@@ -35,12 +38,22 @@ const Video: FunctionComponent<Props> = ({
 
     const changeStream = (_id: string, type?: string) => {
         if (_id != user._id) return;
-        if (type == EVENT_CHANGE_STREAM.add)
+        if (type == EVENT_CHANGE_STREAM.add) {
             addVideoStream()
+            addAudioStream()
+        }
         else {
             if (video && video.current)
                 video.current.srcObject = null
         }
+    }
+
+    const addAudioStream = () => {
+        if (!roomClient) return;
+        const stream: MediaStream[] = roomClient.getStreamsAudioById(user._id)
+        if (audio && audio.current && stream.length > 0)
+            audio.current.srcObject = stream[0]
+        console.log("user", stream);
     }
 
     const addVideoStream = () => {
@@ -49,13 +62,13 @@ const Video: FunctionComponent<Props> = ({
         if (video && video.current && stream.length > 0)
             video.current.srcObject = stream[0]
         console.log("user", stream);
-
     }
 
     return (
         <div className={`${className}`} onClick={() => onClick(user._id)}>
             <video ref={video} autoPlay playsInline ></video>
             <p>{user.name}</p>
+            <audio autoPlay ref={audio} ></audio>
         </div>
     );
 }

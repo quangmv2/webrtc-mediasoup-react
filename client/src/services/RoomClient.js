@@ -61,12 +61,15 @@ class RoomClient {
          */
         this.producerLabel = new Map()
 
-        this.onStream = (streams) => {}
-        this.onStreamLocal = (streams) => {}
+        this.onStream = (streams) => { }
+        this.onStreamLocal = (streams) => { }
         this.onChangeUser = (user, type) => {
 
         }
-        
+        this.onInit = () => {
+
+        }
+
         this.events = new Map();
 
         this.addListener = (event, _callback) => {
@@ -92,9 +95,11 @@ class RoomClient {
 
         this.createRoom(room_id).then(async function () {
             await this.join(name, room_id)
-            this.initSockets()
+            await this.initSockets()
+            // console.log("log init");
             this._isOpen = true
-            successCallback()
+            successCallback(this)
+            // this.onChangeUser(this.users, TYPE_CHANGE_USER.reload)
         }.bind(this))
 
     }
@@ -102,15 +107,15 @@ class RoomClient {
     request(type, data = {}) {
         return new Promise((resolve, reject) => {
             // console.log(this.socket);
-          this.socket.emit(type, data, (data) => {
-            if (data.error) {
-              reject(data.error)
-            } else {
-              resolve(data)
-            }
-          })
+            this.socket.emit(type, data, (data) => {
+                if (data.error) {
+                    reject(data.error)
+                } else {
+                    resolve(data)
+                }
+            })
         })
-      }
+    }
 
     ////////// INIT /////////
 
@@ -125,25 +130,27 @@ class RoomClient {
 
     async join(name, room_id) {
 
-        this.request('join', {
-            name,
-            room_id
-        }).then(async function (e) {
+        try {
+            const e = await this.request('join', {
+                name,
+                room_id
+            });
             this.users.clear()
             e?.data.users.forEach(us => this.users.set(us._id, us));
-            this.onChangeUser(this.users, TYPE_CHANGE_USER.reload)
-            console.log("join", e.data);
-            this.onChangeUser(e?.data, TYPE_CHANGE_USER.join)
             console.log("peers", e)
+            const load = message.loading("Loading device")
             const data = await this.request('getRouterRtpCapabilities');
             let device = await this.loadDevice(data)
             this.device = device
             console.log(device);
             await this.initTransports(device)
+            load();
             this.socket.emit('getProducers')
-        }.bind(this)).catch(e => {
-            console.log(e)
-        })
+            this.onChangeUser(this.users, TYPE_CHANGE_USER.reload)
+
+        } catch (error) {
+            console.log(error);
+        }
     }
 
     async loadDevice(routerRtpCapabilities) {
@@ -178,15 +185,16 @@ class RoomClient {
                 return;
             }
 
-            this.producerTransport = device.createSendTransport(data);
+            this.producerTransport = await device.createSendTransport(data);
+            console.log("oke tran");
 
             this.producerTransport.on('connect', async function ({
                 dtlsParameters
             }, callback, errback) {
                 this.request('connectTransport', {
-                        dtlsParameters,
-                        transport_id: data.id
-                    })
+                    dtlsParameters,
+                    transport_id: data.id
+                })
                     .then(callback)
                     .catch(errback)
             }.bind(this));
@@ -247,9 +255,9 @@ class RoomClient {
                 dtlsParameters
             }, callback, errback) {
                 this.request('connectTransport', {
-                        transport_id: this.consumerTransport.id,
-                        dtlsParameters
-                    })
+                    transport_id: this.consumerTransport.id,
+                    dtlsParameters
+                })
                     .then(callback)
                     .catch(errback);
             }.bind(this));
@@ -258,7 +266,6 @@ class RoomClient {
                 switch (state) {
                     case 'connecting':
                         break;
-
                     case 'connected':
                         //remoteVideo.srcObject = await stream;
                         //await socket.request('resume');
@@ -293,9 +300,9 @@ class RoomClient {
         this.socket.on('newProducers', async function (data) {
             console.log('new producers', data)
             for (let {
-                    producer_id,
-                    producer_socket_id
-                } of data) {
+                producer_id,
+                producer_socket_id
+            } of data) {
                 await this.consume(producer_id, producer_socket_id)
             }
         }.bind(this))
@@ -321,7 +328,7 @@ class RoomClient {
     //////// MAIN FUNCTIONS /////////////
 
     getUsers() {
-        return Array.from(this.users.keys()).reduce((arr, key) => {arr.push(this.users.get(key)); return arr;}, []);
+        return Array.from(this.users.keys()).reduce((arr, key) => { arr.push(this.users.get(key)); return arr; }, []);
     }
 
     getStreams() {
@@ -340,6 +347,18 @@ class RoomClient {
         }, []);
         return consumers.reduce((arr, cs) => {
             arr.push(this.streams.get(cs));
+            return arr;
+        }, []);
+    }
+
+    getStreamsAudioById(_id) {
+        const consumers = Array.from(this.consumers.keys()).reduce((arr, key) => {
+            const cs = this.consumers.get(key);
+            if (cs && cs.kind == "audio" && cs.userID == _id) arr.push(cs.id)
+            return arr;
+        }, []);
+        return consumers.reduce((arr, cs) => {
+            arr.push(this.audios.get(cs));
             return arr;
         }, []);
     }
@@ -394,7 +413,7 @@ class RoomClient {
             console.log('producer already exists for this type ' + type)
             return
         }
-        console.log('mediacontraints:',mediaConstraints)
+        console.log('mediacontraints:', mediaConstraints)
         let stream;
         try {
             stream = screen ? await navigator.mediaDevices.getDisplayMedia() : await navigator.mediaDevices.getUserMedia(mediaConstraints)
@@ -406,21 +425,21 @@ class RoomClient {
             };
             if (!audio && !screen) {
                 params.encodings = [{
-                        rid: 'r0',
-                        maxBitrate: 100000,
-                        //scaleResolutionDownBy: 10.0,
-                        scalabilityMode: 'S1T3'
-                    },
-                    {
-                        rid: 'r1',
-                        maxBitrate: 300000,
-                        scalabilityMode: 'S1T3'
-                    },
-                    {
-                        rid: 'r2',
-                        maxBitrate: 900000,
-                        scalabilityMode: 'S1T3'
-                    }
+                    rid: 'r0',
+                    maxBitrate: 100000,
+                    //scaleResolutionDownBy: 10.0,
+                    scalabilityMode: 'S1T3'
+                },
+                {
+                    rid: 'r1',
+                    maxBitrate: 300000,
+                    scalabilityMode: 'S1T3'
+                },
+                {
+                    rid: 'r2',
+                    maxBitrate: 900000,
+                    scalabilityMode: 'S1T3'
+                }
                 ];
                 params.codecOptions = {
                     videoGoogleStartBitrate: 1000
@@ -461,7 +480,7 @@ class RoomClient {
                     elem.parentNode.removeChild(elem)
                 }
                 this.producers.delete(producer.id)
-            console.log("change producers", this.producers);
+                console.log("change producers", this.producers);
 
 
             })
@@ -475,7 +494,7 @@ class RoomClient {
                     elem.parentNode.removeChild(elem)
                 }
                 this.producers.delete(producer.id)
-            console.log("change producers", this.producers);
+                console.log("change producers", this.producers);
 
 
             })
@@ -514,7 +533,7 @@ class RoomClient {
             this.consumers.set(consumer.id, consumer)
             const user_tmp = this.users.get(userID);
             console.log(user_tmp);
-            if (!user_tmp.consumers) 
+            if (!user_tmp.consumers)
                 user_tmp["consumers"] = new Map()
             user_tmp.consumers.set(consumer.id, consumer)
             this.onChangeUser(this.users, TYPE_CHANGE_USER.reload)
@@ -535,7 +554,9 @@ class RoomClient {
                 // this.onChangeStream(userID)
                 // this.onStream(elem)
                 const __callbacks = this.events.get(EVENTS.onChangeStream);
-                __callbacks.forEach(cb => cb(userID, EVENT_CHANGE_STREAM.add))
+                console.log(__callbacks);
+                if (__callbacks)
+                    __callbacks.forEach(cb => cb(userID, EVENT_CHANGE_STREAM.add))
             } else {
                 // elem = document.createElement('audio')
                 // elem.srcObject = stream
@@ -543,6 +564,11 @@ class RoomClient {
                 // elem.playsinline = false
                 // elem.autoplay = true
                 // // this.remoteAudioEl.appendChild(elem)
+                this.audios.set(consumer.id, stream)
+                const __callbacks = this.events.get(EVENTS.onChangeStream);
+                console.log(__callbacks);
+                if (__callbacks)
+                    __callbacks.forEach(cb => cb(userID, EVENT_CHANGE_STREAM.add))
             }
 
             consumer.on('trackended', function () {
@@ -660,12 +686,12 @@ class RoomClient {
         // // })
         // console.log(elem);
         // if (elem) elem.parentNode.removeChild(elem)
-        
+
         console.log("ss", this.users);
         console.log(consumer_id);
         const consumer = this.consumers.get(consumer_id);
         console.log(this.consumers, consumer);
-        if (consumer) this.events.get(EVENTS.onChangeStream).forEach(cb => cb(consumer.userID, EVENT_CHANGE_STREAM.remove))
+        if (consumer && this.events.get(EVENTS.onChangeStream)) this.events.get(EVENTS.onChangeStream).forEach(cb => cb(consumer.userID, EVENT_CHANGE_STREAM.remove))
         this.onChangeUser(this.users, TYPE_CHANGE_USER.reload)
         console.log("ss", this.users);
         this.streams.delete(consumer_id)

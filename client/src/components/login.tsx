@@ -16,11 +16,12 @@ const tailLayout = {
 };
 
 interface Props {
-    onLogin: (name: string, room_id: string) => void
+    onLogin: (name: string, room_id: string) => void,
+    signing?: boolean
 }
 
 const Login: FunctionComponent<Props> = ({
-    onLogin
+    onLogin, signing
 }) => {
 
     const [form] = useForm();
@@ -76,7 +77,7 @@ const Login: FunctionComponent<Props> = ({
                 </Form.Item>
 
                 <Form.Item {...tailLayout}>
-                    <Button type="primary" htmlType="submit">
+                    <Button type="primary" disabled={signing} loading={signing} htmlType="submit">
                         Join to room
                     </Button>
                 </Form.Item>
