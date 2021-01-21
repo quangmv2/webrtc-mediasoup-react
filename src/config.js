@@ -1,28 +1,12 @@
+require('dotenv').config()
+
 const os = require('os')
 
-var
-    // Local ip address that we're trying to calculate
-    address
-    // Network interfaces
-    ,ifaces = os.networkInterfaces();
-
-
-// Iterate over interfaces ...
-for (var dev in ifaces) {
-
-    // ... and find the one that matches the criteria
-    var iface = ifaces[dev].filter(function(details) {
-        return details.family === 'IPv4' && details.internal === false;
-    });
-
-    if(iface.length > 0) address = iface[0].address;
-}
-
-// address = '127.0.0.1'
+const address = process.env.IP_HOST || '127.0.0.1'
 
 module.exports = {
     listenIp: '0.0.0.0',
-    listenPort: 3016,
+    listenPort: process.env.PORT || 3016,
     sslCrt: '../ssl/cert.pem',
     sslKey: '../ssl/key.pem',
     

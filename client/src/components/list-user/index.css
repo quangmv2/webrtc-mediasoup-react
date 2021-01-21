@@ -1,29 +1,41 @@
 .list-user {
-    height: 100%;
+    position: absolute;
+    height: 500px;
     /* background-color: white; */
-    /* overflow: auto; */
+    overflow: auto;
     max-height: 100vh;
-    transition: height 0.5s ease-in-out;
-    display: flex;
-    align-items: center;
+    width: 200px;
+    /* transition: height 0.5s ease-in-out; */
+    /* display: flex; */
+    /* align-items: center; */
+    z-index: 20;
+    top: calc(50% - 250px);
+    right: 10px;
+}
+
+.hidden {
+    display: none;
 }
 
 .list-user video{
-    max-width: 200px;
-}
-
-.item-user{
-    width: 200px;
-    max-width: 200px;
-    min-width: 200px;
-    max-height: calc((100%/3));
-}
-
-.user {
-    max-height: 112px;
+    width: 100%;
     height: 100%;
-    /* background-color: red; */
-    border: 1px solid #FFF;
+}       
+
+.list-user .item-user{
+    height: 50%;
+}
+
+/* .list-user .btn-swiper {
+    z-index: 20;
+    left: 10px;
+    position: absolute;
+} */
+
+.list-user .user {
+    height: 114px;
+    background-color: #e8e8e8;
+    /* border: 1px solid #FFF; */
     position: relative;
     margin: 1px;
     cursor: pointer;

@@ -1,10 +1,17 @@
-import React, { FunctionComponent } from 'react';
+import React, { FunctionComponent, useRef } from 'react';
 import UserComponent, { User } from './user';
 import './index.css';
 import { RoomClient } from '../../services/RoomClient';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import SwiperCore, { Navigation, Pagination, Scrollbar, A11y } from 'swiper';
-import 'swiper/swiper.min.css';
+// Import Swiper styles
+import 'swiper/swiper.scss';
+import 'swiper/components/navigation/navigation.scss';
+import 'swiper/components/pagination/pagination.scss';
+import 'swiper/components/scrollbar/scrollbar.scss';
+
+// install Swiper components
+SwiperCore.use([Navigation, Pagination, Scrollbar, A11y]);
 
 
 interface Props {
@@ -17,31 +24,33 @@ interface Props {
     user?: User
 }
 
-SwiperCore.use([Navigation, Pagination, Scrollbar, A11y]);
-
 const Users: FunctionComponent<Props> = ({
     className,
-    visible = false,
-    placement = "left",
     users,
     onClickUser,
     roomClient,
+    visible
 }) => {
 
     return (
-        <div className={`${className} list-user`}
-            style={{
-                height: visible ? "100%" : "0px"
-            }}
+        <div className={`${visible ? "" :"hidden"} list-user`}
         >
-            {
-                users.map(user => (<UserComponent
-                        onClick={onClickUser}
-                        user={user}
-                        roomClient={roomClient}
-                        key={user._id}
-                        className='user' />))
-            }
+                    {
+                        users.map((user, index) => (
+                            // <SwiperSlide
+                            //     key={user._id + index + "wiper"}
+                            //     className="item-user"
+                            // >
+                                <UserComponent
+                                    onClick={onClickUser}
+                                    user={user}
+                                    roomClient={roomClient}
+                                    key={user._id + "user "}
+                                    className='user' />
+                            // </SwiperSlide>
+                            )
+                        )
+                    }
         </div >
     );
 }

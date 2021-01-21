@@ -71,11 +71,6 @@ const Login: FunctionComponent<Props> = ({
                     <Input
                     />
                 </Form.Item>
-
-                <Form.Item {...tailLayout} name="remember" valuePropName="checked">
-                    <Checkbox>Remember me</Checkbox>
-                </Form.Item>
-
                 <Form.Item {...tailLayout}>
                     <Button type="primary" disabled={signing} loading={signing} htmlType="submit">
                         Join to room

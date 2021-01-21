@@ -7,7 +7,7 @@ import io from "../../services/lib/socketio";
 import { RoomClient } from "../../services/RoomClient";
 import { message } from 'antd';
 
-const socket = io("https://qtconference.ml", {
+const socket = io("https://localhost:3016", {
   transports: ["websocket", "polling"]
 });
 

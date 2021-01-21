@@ -39,6 +39,7 @@ const Control: FunctionComponent<Props> = ({
                 return;
             }
             console.log(rc.getUsers(), rc.getUsers().filter((us: User) => us._id != rc.socket.id));
+            console.log("change user");
             
             setUsers(rc.getUsers().filter((us: User) => us._id != rc.socket.id))
             switch (type) {
@@ -235,10 +236,9 @@ const Control: FunctionComponent<Props> = ({
                             onClick={() => setOpenListUser(b => !b)}
                         />
                     </div>
-                    <Users users={users} roomClient={rc} visible={openListUser} onClickUser={onClickUser} placement="right" />
-
                 </div>
             </div>
+            <Users users={users} roomClient={rc} visible={openListUser} onClickUser={onClickUser}/>
             <VideoContainer local={localVideo} remote={remoteVideo} />
             <div className="control-container">
                 <div className="control">
