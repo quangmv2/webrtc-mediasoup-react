@@ -1,21 +1,29 @@
 .list-user {
     height: 100%;
-    background-color: white;
-    overflow: auto;
+    /* background-color: white; */
+    /* overflow: auto; */
     max-height: 100vh;
     transition: height 0.5s ease-in-out;
-
+    display: flex;
+    align-items: center;
 }
 
 .list-user video{
     max-width: 200px;
 }
 
+.item-user{
+    width: 200px;
+    max-width: 200px;
+    min-width: 200px;
+    max-height: calc((100%/3));
+}
+
 .user {
     max-height: 112px;
-    height: 150px;
+    height: 100%;
     /* background-color: red; */
-    border: 1px solid #000000;
+    border: 1px solid #FFF;
     position: relative;
     margin: 1px;
     cursor: pointer;

@@ -200,7 +200,7 @@ const Control: FunctionComponent<Props> = ({
 
     const exit = () => {
         rc?.exit(true);
-        location.reload();
+        location.replace("/")
     }
 
     const toggleFullscreen = () => {

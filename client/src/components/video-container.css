@@ -30,6 +30,20 @@
     width: 100%;
 }
 
+@media only screen and (max-width: 482px) {
+    .local-video {
+        position: absolute;
+        max-width: 150px;
+        bottom: 100px;
+        left: 20px;
+        z-index: 10;
+    }
+    
+    .local-video video {
+        width: 100%;
+    }
+} 
+
 .remote-video {
     height: 100%;
     width: 100%;

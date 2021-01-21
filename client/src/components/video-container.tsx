@@ -3,7 +3,6 @@ import './video-container.css';
 import Video from './video';
 import VideoLocal from './video-local';
 import IconWebinar from "../assets/webinar-icon.png";
-import * as faceapi from "../services/dist/face-api.js";
 
 interface Props {
     local: MediaStream,
@@ -16,7 +15,7 @@ const VideoContainer: FunctionComponent<Props> = ({
 }) =>  {
 
     useEffect(() => {
-        console.log(faceapi);
+        // console.log(faceapi);
         // loadAiModels()
     }, [])
 

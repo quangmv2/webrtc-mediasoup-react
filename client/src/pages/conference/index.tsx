@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Control from '../../components/control';
 import Login from '../../components/login';
 import './index.css';
@@ -18,6 +18,17 @@ function Conference() {
   const [rc, setRc] = useState<RoomClient>();
   const [login, setLogin] = useState<boolean>(false);
   const [signing, setSigning] = useState<boolean>(false);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const myParam = urlParams.get('room');
+    const join = urlParams.get('join');
+
+    if (myParam && join) {
+      joinRoom(Math.round(Math.random() * 10000) + '', myParam);
+    }
+    
+}, []);
 
   const loginSuccess = (rcc) => {
     if (rcc) {
